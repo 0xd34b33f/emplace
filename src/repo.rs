@@ -68,7 +68,30 @@ impl Repo {
             path: path.to_path_buf(),
         })
     }
-
+    pub fn new_cached(config: Config) -> Result<Self> {
+        let repo_directory = config.repo_directory.clone();
+        let path = Path::new(&repo_directory);
+        // Create the emplace file if it doesn't exist
+        let emplace_file = config.full_file_path();
+        if !emplace_file.exists() {
+            // If the repo contains a configuration file create a symbolic link to that,
+            // otherwise create a new configuration file
+            let repo_config_file = path.join("emplace.toml");
+            if repo_config_file.exists() {
+                // Create a symbolic link
+                symlink(repo_config_file, &emplace_file)?;
+            } else {
+                // Create a new configuration file
+                let empty_packages = Packages::empty();
+                let toml_string = to_string_pretty(&empty_packages, Repo::pretty_config())?;
+                fs::write(&emplace_file, toml_string)?;
+            }
+        }
+        Ok(Repo {
+            config,
+            path: path.to_path_buf(),
+        })
+    }
     pub fn read(&self) -> Result<Packages> {
         // Open the file
         let mut file = File::open(&self.config.full_file_path())

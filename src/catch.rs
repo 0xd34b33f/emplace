@@ -16,13 +16,21 @@ pub fn catch(line: &str) -> Result<()> {
     if catches.is_empty() {
         return Ok(());
     }
-
+    
     // Get the config
     let config = Config::from_default_file_or_new()?;
 
+    let cached_repo = Repo::new_cached(config.clone())?;
+    catches.filter_saved_packages(&cached_repo.read()?);
+    
+    let len = catches.len();
+    if len == 0 {
+        // Nothing found after filtering
+        return Ok(());
+    }
     // Get the repository from the config
     let repo = Repo::new(config)?;
-
+    
     // Only keep the packages that haven't been saved already
     catches.filter_saved_packages(&repo.read()?);
 
